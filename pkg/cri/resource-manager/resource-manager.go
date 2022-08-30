@@ -92,17 +92,6 @@ func NewResourceManager() (ResourceManager, error) {
 		return nil, err
 	}
 
-	if opt.UseNRIPlugin {
-		m.Info("running as an NRI plugin...")
-		nrip, err := newNRIPlugin(m)
-		if err != nil {
-			return nil, err
-		}
-		m.nri = nrip
-	} else {
-		m.Info("running as a CRI proxy...")
-	}
-
 	switch {
 	case opt.ResetPolicy && opt.ResetConfig:
 		os.Exit(m.resetCachedPolicy() + m.resetCachedConfig())
@@ -136,7 +125,15 @@ func NewResourceManager() (ResourceManager, error) {
 		return nil, err
 	}
 
-	if !opt.UseNRIPlugin {
+	if opt.UseNRIPlugin {
+		m.Info("running as an NRI plugin...")
+		nrip, err := newNRIPlugin(m)
+		if err != nil {
+			return nil, err
+		}
+		m.nri = nrip
+	} else {
+		m.Info("running as a CRI proxy...")
 		if err := m.setupRelay(); err != nil {
 			pid, _ := pidfile.OwnerPid()
 			if pid > 0 {

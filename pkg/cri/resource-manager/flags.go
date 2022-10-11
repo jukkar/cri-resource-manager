@@ -25,6 +25,7 @@ import (
 
 // Options captures our command line parameters.
 type options struct {
+	SysfsRoot             string
 	ImageSocket           string
 	RuntimeSocket         string
 	RelaySocket           string
@@ -54,6 +55,9 @@ const (
 
 // Register us for command line option processing.
 func init() {
+	flag.StringVar(&opt.SysfsRoot, "sysfs-root", "",
+		"Non-standard directory under which sysfs is mounted as 'sys'.")
+
 	flag.StringVar(&opt.RuntimeSocket, "runtime-socket", sockets.Containerd,
 		"Unix domain socket path where CRI runtime service requests should be relayed to.")
 	flag.StringVar(&opt.ImageSocket, "image-socket", relay.DefaultImageSocket,

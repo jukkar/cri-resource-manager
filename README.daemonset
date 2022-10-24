@@ -1,0 +1,117 @@
+How to run cri-resmgr as a DaemonSet
+====================================
+
+You can run the following commands in a host where the
+kubernetes is running or have a separate build machine
+for building the deployment image. The image building
+requires Docker so you need to have it installed in the
+building machine.
+
+First fetch the DaemonSet supported sources and build the
+binaries. Install golang, git and make tools first.
+
+   git clone https://github.com/jukkar/cri-resource-manager.git
+   cd cri-resource-manager
+   git checkout -b nri-daemonset origin/nri-daemonset
+   make
+
+1. Follow these instructions if you have a separate build machine.
+   Otherwise go to step 2 if you are building directly in the k8s node.
+
+   Create the cri-resmgr container image.
+
+      scripts/build/prepare-crirm-nri-ds.sh
+
+   The script will print the commands you need to execute in the k8s node
+   after the files have been copied there.
+
+   Currently you need a NRI supported containerd and must compile it from
+   sources.
+
+   If you are in Fedora, execute this command to install necessary build
+   dependencies.
+
+      sudo dnf install golang-github-containerd-btrfs-devel
+
+   Fetch containerd sources like this. It is assumed that you are currently
+   in top level cri-resource-manager directory.
+
+      cd ..
+      git clone https://github.com/klihub/containerd.git
+      cd containerd
+      git checkout -b pr/proto/nri origin/pr/proto/nri
+      make
+
+    If you built the above in a separate building host, you need to
+    copy the following files into the k8s node.
+
+      scp bin/containerd-shim bin/containerd-shim-runc-v1 bin/containerd-shim-runc-v2 bin/containerd bin/ctr k8s-node:
+
+    From cri-resmgr sources, copy these files
+
+      cd ../cri-resource-manager
+      scp ./test/e2e/containerd-nri-enable ./scripts/build/output/* k8s-node:
+
+    Then ssh to the k8s node and configure the system. The instructions
+    assume that the Kubernetes is installed and is running properly in the node.
+
+      ssh k8s-node
+
+    Install pip3 and toml tool, we assume Fedora is in use.
+
+      sudo dnf install python3-pip
+      sudo pip3 install toml tomli_w
+
+      mkdir /etc/nri
+      mkdir -p /opt/nri/plugins
+      echo "disableConnections: false" > /etc/nri/nri.conf
+
+   Disable containerd that is running in the system, and start to use
+   the NRI enabled one.
+
+      systemctl stop containerd
+      cp -f ./containerd* /usr/bin/
+      containerd config dump > /etc/containerd/config.toml
+      systemctl start containerd
+      ./containerd-nri-enable
+
+   Import the cri-resmgr images. The actual commands were printed earlier, here are
+   just examples what to run.
+
+      ctr -n k8s.io images import cri-resmgr-image-a30863a2f562.tar
+      ctr -n k8s.io images import cri-resmgr-agent_image-a30863a2f562.tar
+
+   Then deploy the daemonset.
+
+      kubectl apply -f cri-resmgr-deployment.yaml
+
+   The cri-resmgr should now be running as a DaemonSet.
+
+
+2. Follow these instructions if you are running the builder and
+   k8s node in the same host.
+
+   First we need to get the containerd sources in order to compile it.
+   In Fedora, you need to install this dependency.
+
+      sudo dnf install golang-github-containerd-btrfs-devel
+
+   Fetch containerd sources like this. It is assumed that you are currently
+   in top level cri-resource-manager directory.
+
+      cd ..
+      git clone https://github.com/klihub/containerd.git
+      cd containerd
+      git checkout -b pr/proto/nri origin/pr/proto/nri
+      make
+ 
+   Install pip3 and toml tool, we assume Fedora is in use.
+
+      sudo dnf install python3-pip
+      sudo pip3 install toml tomli_w
+
+   Then run the builder script.
+
+      sudo scripts/hack/get-cri-rm-nri-as-ds.sh
+
+   The cri-resmgr should now be running as a DaemonSet.

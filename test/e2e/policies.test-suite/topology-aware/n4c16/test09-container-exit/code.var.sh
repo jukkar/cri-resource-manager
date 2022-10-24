@@ -1,6 +1,9 @@
 # Test resource allocation / free on different container exit and
 # restart scenarios.
 
+# Make sure all the pods in default namespace are cleared so we get a fresh start
+kubectl delete pods --all --now
+
 CONTCOUNT=1 CPU=1000m MEM=64M create guaranteed
 report allowed
 verify 'len(cpus["pod0c0"]) == 1'
@@ -31,3 +34,8 @@ verify '"pod0c0" not in cpus'
     pp allocations
     error "pod0c0 expected to disappear from allocations"
 }
+
+# Restore default test configuration, restart cri-resmgr.
+terminate cri-resmgr
+cri_resmgr_cfg=$(instantiate cri-resmgr.cfg)
+launch cri-resmgr

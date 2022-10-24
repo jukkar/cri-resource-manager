@@ -1,3 +1,10 @@
+# Make sure all the pods in default namespace are cleared so we get a fresh start
+kubectl delete pods --all --now
+
+# Do a fresh start
+terminate cri-resmgr
+cri_resmgr_cfg=$(instantiate cri-resmgr.cfg)
+launch cri-resmgr
 
 # pod0: Test that 4 guaranteed containers eligible for isolated CPU allocation
 # gets evenly spread over NUMA nodes.

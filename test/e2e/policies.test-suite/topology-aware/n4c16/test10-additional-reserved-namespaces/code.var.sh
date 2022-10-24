@@ -28,3 +28,8 @@ verify 'cpus["pod0c0"] == {"cpu10", "cpu11"}'
 verify 'cpus["pod1c0"] == {"cpu08", "cpu09"}'
 
 cleanup-test-pods
+
+# Restore default test configuration, restart cri-resmgr.
+terminate cri-resmgr
+cri_resmgr_cfg=$(instantiate cri-resmgr.cfg)
+launch cri-resmgr
